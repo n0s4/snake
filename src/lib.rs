@@ -8,6 +8,7 @@ pub const SQUARE_SIZE: f32 = 50.0;
 // Colours.
 pub const SNAKE_COLOUR: Color = GREEN;
 pub const BACKGROUND: Color = DARKGREEN;
+pub const APPLE_COLOUR: Color = RED;
 
 pub struct Snake {
     squares: VecDeque<Vec2>,
@@ -41,31 +42,16 @@ impl Snake {
 
     pub fn draw(&self) {
         for square in self.squares.iter() {
-            draw_rectangle(square.x, square.y, SQUARE_SIZE, SQUARE_SIZE, SNAKE_COLOUR);
+            draw_square_at(square, SNAKE_COLOUR)
         }
     }
-}
 
-pub enum InputType {
-    ChangeDirection(Vec2),
-    Grow,
-}
-
-/// Convert input into a direction as a Vec2.
-/// ```
-/// 'h' => [-1, 0] // left
-/// 'j' => [0, -1] // down
-/// 'k' => [0, 1] // up
-/// 'l' => [1, 0] // right
-/// ```
-pub fn parse_input(key: KeyCode) -> Option<InputType> {
-    // Supports hjkl, arrow keys, and wasd.
-    match key {
-        KeyCode::H | KeyCode::Left | KeyCode::A => Some(InputType::ChangeDirection(-Vec2::X)), // left
-        KeyCode::J | KeyCode::Down | KeyCode::S => Some(InputType::ChangeDirection(Vec2::Y)), // down
-        KeyCode::K | KeyCode::Up | KeyCode::W => Some(InputType::ChangeDirection(-Vec2::Y)),  // up
-        KeyCode::L | KeyCode::Right | KeyCode::D => Some(InputType::ChangeDirection(Vec2::X)), // right
-        KeyCode::Space => Some(InputType::Grow),
-        _ => None,
+    /// The position of the head of the snake.
+    pub fn head(&self) -> &Vec2 {
+        self.squares.front().unwrap()
     }
+}
+
+pub fn draw_square_at(pos: &Vec2, colour: Color) {
+    draw_rectangle(pos.x, pos.y, SQUARE_SIZE, SQUARE_SIZE, colour)
 }
