@@ -24,8 +24,11 @@ async fn main() {
         clear_background(BACKGROUND);
 
         // Set the move direction if a new input occured.
-        if let Some(new_dir) = get_last_key_pressed().and_then(key_to_direction) {
-            move_direction = new_dir;
+        if let Some(input) = get_last_key_pressed().and_then(parse_input) {
+            match input {
+                InputType::ChangeDirection(dir) => move_direction = dir,
+                InputType::Grow => snake.grow(),
+            }
         }
 
         timer += get_frame_time();
