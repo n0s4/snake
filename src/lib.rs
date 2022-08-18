@@ -2,12 +2,13 @@ use macroquad::prelude::*;
 use std::collections::VecDeque;
 
 /// Size of a square on the game "grid".
-// FIXME: should the library really be interested in the square size?
-pub const SQUARE_SIZE: f32 = 50.0;
+// TODO: Square size shouldn't be constant due to window resizing.
+pub const SQUARE_SIZE: f32 = 30.0;
 
 // Colours.
-pub const SNAKE_COLOUR: Color = GREEN;
-pub const BACKGROUND: Color = DARKGREEN;
+const SNAKE_COLOUR: Color = BLUE;
+const SNAKE_HEAD_COLOUR: Color = DARKBLUE;
+pub const BACKGROUND: Color = GREEN;
 pub const APPLE_COLOUR: Color = RED;
 
 pub struct Snake {
@@ -41,7 +42,13 @@ impl Snake {
     }
 
     pub fn draw(&self) {
-        for square in self.squares.iter() {
+        let mut squares = self.squares.iter();
+        let head = squares.next().unwrap();
+
+        // We draw the head in a different colour
+        draw_square_at(head, SNAKE_HEAD_COLOUR);
+
+        for square in squares {
             draw_square_at(square, SNAKE_COLOUR)
         }
     }
