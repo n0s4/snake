@@ -1,12 +1,14 @@
-use std::collections::VecDeque;
-
 use ::rand::{thread_rng, Rng};
 use macroquad::{audio, prelude::*};
 use snake::{XY, *};
+use std::collections::VecDeque;
 
 /// Time to wait between each tick, in seconds.
 /// Lower = faster.
 const TICK_TIME: f32 = 0.1;
+
+/// Game grid size, measured in "squares".
+pub const GRID_SIZE: XY = XY { x: 40, y: 30 };
 
 // Colours.
 const SNAKE_COLOUR: Color = BLUE;
@@ -24,6 +26,7 @@ async fn main() {
 
     // Keeps track of how much time is left till the next tick (when the snake moves).
     let mut tick_timer: f32 = 0.0;
+
     let mut score: u16 = 0;
     const START_POS: XY = XY {
         x: GRID_SIZE.x / 2 - 3,
@@ -66,8 +69,8 @@ async fn main() {
                 snake.change_direction(new_dir);
             }
 
-            // Advance the snake, and die if it collided with anything.
-            if snake.advance_and_collide() {
+            // Advance the snake, or die if it collided with anything.
+            if snake.advance_or_collide_in(GRID_SIZE) {
                 info!("You died!");
                 return;
             };

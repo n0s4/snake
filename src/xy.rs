@@ -10,36 +10,14 @@ impl XY {
         Self { x, y }
     }
 
+    /// Shifts a position by 1 in `direction`. This saturate instead of overflowing.
     pub fn shift(&self, direction: Direction) -> Self {
         match direction {
             Direction::Up => XY::new(self.x, self.y.saturating_sub(1)),
-            Direction::Down => XY::new(self.x, self.y + 1),
+            Direction::Down => XY::new(self.x, self.y.saturating_add(1)),
             Direction::Left => XY::new(self.x.saturating_sub(1), self.y),
-            Direction::Right => XY::new(self.x + 1, self.y),
+            Direction::Right => XY::new(self.x.saturating_add(1), self.y),
         }
-    }
-
-    pub fn checked_shift(&self, direction: Direction) -> Option<Self> {
-        Some(match direction {
-            Direction::Down => XY::new(self.x, self.y + 1),
-            Direction::Right => XY::new(self.x + 1, self.y),
-
-            Direction::Up => XY::new(
-                self.x,
-                match self.y.checked_sub(1) {
-                    Some(y) => y,
-                    None => return None,
-                },
-            ),
-
-            Direction::Left => XY::new(
-                match self.x.checked_sub(1) {
-                    Some(x) => x,
-                    None => return None,
-                },
-                self.y,
-            ),
-        })
     }
 }
 

@@ -4,9 +4,6 @@ use std::collections::VecDeque;
 pub mod xy;
 pub use xy::{Direction, XY};
 
-/// Game grid size, measured in "squares".
-pub const GRID_SIZE: XY = XY { x: 40, y: 30 };
-
 pub struct Snake {
     /// The [`Snake`] is essentially just a queue of the position of each block.
     blocks: VecDeque<XY>,
@@ -25,28 +22,20 @@ impl Snake {
         }
     }
 
-    /// Advances (moves) the [`Snake`] one block in it's current `direction`, and checks for collision.
-    /// If the [`Snake`] collides with the wall or itself, this returns `true`, otherwise `false`.
-    pub fn advance_and_collide(&mut self) -> bool {
-        let new_head = match self.head().checked_shift(self.direction) {
-            Some(hd) => hd,
-            // This will return none if the shifting attempted to bring the x or y below 0, i.e hitting the left or upper wall.
-            None => return true,
-        };
-
-        if new_head.x >= GRID_SIZE.x || new_head.y >= GRID_SIZE.y {
-            return true;
+    /// If the [`Snake`] will collide with itself or the walls of `grid` when [`advance`]d, returns `true`,
+    /// otherwise advances the [`Snake`], returning `false`.
+    pub fn advance_or_collide_in(&mut self, grid: XY) -> bool {
+        if self.will_collide_in(grid) {
+            true
+        } else {
+            self.advance();
+            false
         }
+    }
 
-        // Check for collisions with itself.
-        if self
-            .blocks()
-            .iter()
-            .any(|&existing_block| new_head == existing_block)
-        {
-            return true;
-        }
-
+    /// Advances (moves) the [`Snake`] one block in it's current `direction`, without checking for collisions.
+    fn advance(&mut self) {
+        let new_head = self.head().shift(self.direction);
         self.blocks.push_front(new_head);
 
         // We only remove the tail if adding the new head exceeds the length, if we collect an apple
@@ -54,8 +43,22 @@ impl Snake {
         if self.blocks.len() > self.length {
             self.blocks.pop_back();
         }
+    }
 
-        false
+    /// Whether the [`Snake`] *will* collide with the walls of `grid` or itself the next time it is [`advance`]d.
+    fn will_collide_in(&self, grid: XY) -> bool {
+        use Direction::*;
+        let hd = self.head();
+        (match self.direction {
+            Left => hd.x == 0,
+            Up => hd.y == 0,
+            Right => hd.x + 1 == grid.x,
+            Down => hd.y + 1 == grid.y,
+        }) || ({
+            // If we don't hit a wall then check for self-collisions.
+            let new_head = hd.shift(self.direction);
+            self.blocks.iter().any(|&block| block == new_head)
+        })
     }
 
     /// Changes the direction of the `[Snake]`, unless the direction is the inverse of the current direction.
