@@ -105,7 +105,6 @@ async fn main() {
         let gridx = (scrw - grid_width) / 2.0;
         let gridy = (scrh - grid_height) / 2.0;
 
-        // Draw the grid.
         draw_rectangle(gridx, gridy, grid_width, grid_height, GRID_BACKGROUND);
 
         let draw_block = |block: &XY, colour| {
@@ -116,10 +115,10 @@ async fn main() {
 
         draw_block(&apple_pos, APPLE_COLOUR);
 
-        // Draw snake.
-        let mut blocks = snake.blocks().iter();
-        draw_block(blocks.next().unwrap(), SNAKE_HEAD_COLOUR); // the head is drawn in a different colour to the body.
-        for block in blocks {
+        draw_block(snake.head(), SNAKE_HEAD_COLOUR); // The head is drawn in a different colour to the body.
+
+        // We skip(1) to not draw over the head.
+        for block in snake.blocks().iter().skip(1) {
             draw_block(block, SNAKE_COLOUR)
         }
 

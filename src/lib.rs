@@ -5,7 +5,7 @@ pub mod xy;
 pub use xy::{Direction, XY};
 
 pub struct Snake {
-    /// The [`Snake`] is essentially just a queue of the position of each block.
+    /// The main data of the snake. [`Snake`] is essentially just a queue of the position of each block.
     blocks: VecDeque<XY>,
     length: usize,
     direction: Direction,
@@ -25,9 +25,7 @@ impl Snake {
     /// If the [`Snake`] will collide with itself or the walls of `grid` when [`advance`]d, returns `true`,
     /// otherwise advances the [`Snake`], returning `false`.
     pub fn advance_or_collide_in(&mut self, grid: XY) -> bool {
-        if self.will_collide_in(grid) {
-            true
-        } else {
+        self.will_collide_in(grid) || {
             self.advance();
             false
         }
@@ -47,18 +45,21 @@ impl Snake {
 
     /// Whether the [`Snake`] *will* collide with the walls of `grid` or itself the next time it is [`advance`]d.
     fn will_collide_in(&self, grid: XY) -> bool {
-        use Direction::*;
         let hd = self.head();
-        (match self.direction {
+
+        use Direction::*;
+        let collided_wall = match self.direction {
             Left => hd.x == 0,
             Up => hd.y == 0,
             Right => hd.x + 1 == grid.x,
             Down => hd.y + 1 == grid.y,
-        }) || ({
-            // If we don't hit a wall then check for self-collisions.
-            let new_head = hd.shift(self.direction);
-            self.blocks.iter().any(|&block| block == new_head)
-        })
+        };
+
+        collided_wall || {
+            // If we won't hit a wall then check for self-collisions.
+            let future_head = hd.shift(self.direction);
+            self.blocks.iter().any(|&block| block == future_head)
+        }
     }
 
     /// Changes the direction of the `[Snake]`, unless the direction is the inverse of the current direction.

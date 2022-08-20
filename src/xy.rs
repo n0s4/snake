@@ -1,5 +1,5 @@
 #[derive(PartialEq, Eq, Clone, Copy)]
-/// Used for co-ordinates. (0, 0) is top left.
+/// Used for coordinates and grid size. (0, 0) is top left.
 pub struct XY {
     pub x: u8,
     pub y: u8,
@@ -10,13 +10,16 @@ impl XY {
         Self { x, y }
     }
 
-    /// Shifts a position by 1 in `direction`. This saturate instead of overflowing.
+    /// Shifts a position by 1 in `direction`. This saturates instead of overflowing.
     pub fn shift(&self, direction: Direction) -> Self {
+        use Direction::*;
+        let xy = XY::new;
+
         match direction {
-            Direction::Up => XY::new(self.x, self.y.saturating_sub(1)),
-            Direction::Down => XY::new(self.x, self.y.saturating_add(1)),
-            Direction::Left => XY::new(self.x.saturating_sub(1), self.y),
-            Direction::Right => XY::new(self.x.saturating_add(1), self.y),
+            Up => xy(self.x, self.y.saturating_sub(1)),
+            Down => xy(self.x, self.y.saturating_add(1)),
+            Left => xy(self.x.saturating_sub(1), self.y),
+            Right => xy(self.x.saturating_add(1), self.y),
         }
     }
 }
@@ -31,12 +34,13 @@ pub enum Direction {
 
 impl Direction {
     pub(crate) fn is_inverse_of(self, other: Self) -> bool {
+        use Direction::*;
         other
             == match self {
-                Direction::Up => Direction::Down,
-                Direction::Down => Direction::Up,
-                Direction::Left => Direction::Right,
-                Direction::Right => Direction::Left,
+                Up => Down,
+                Down => Up,
+                Left => Right,
+                Right => Left,
             }
     }
 }
