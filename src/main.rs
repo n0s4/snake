@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 use ::rand::{thread_rng, Rng};
 use macroquad::{audio, prelude::*};
 use snake::{XY, *};
@@ -35,23 +37,43 @@ async fn main() {
         ..START_POS
     };
 
+    let mut input_queue = VecDeque::new();
+
     loop {
-        // Set the move direction if a new input occured.
-        if let Some(input) = get_char_pressed() {
-            snake.change_direction(match input.to_ascii_lowercase() {
+        // Add a new direction to the input queue if a direction key was pressed.
+        if let Some(direction) = get_char_pressed().and_then(|ch| {
+            let new_dir = match ch.to_ascii_lowercase() {
                 'w' | 'k' => Direction::Up,
                 'a' | 'h' => Direction::Left,
                 's' | 'j' => Direction::Down,
                 'd' | 'l' => Direction::Right,
-                // Otherwise don't change it (by setting it to itself).
-                _ => snake.direction(),
-            });
+                // Otherwise ignore it.
+                _ => return None,
+            };
+
+            // We avoid stacking repeated inputs.
+            // This is because holding down a key for longer than usual would fill up the input queue and
+            // other keypresses would be ignored until the repeated inputs are consumed.
+            if new_dir != snake.direction() {
+                Some(new_dir)
+            } else {
+                None
+            }
+        }) {
+            input_queue.push_back(direction)
         }
 
         tick_timer += get_frame_time();
-        // Move the snake if a tick has passed.
+        // Advance the game if a tick has passed.
         if tick_timer > TICK_TIME {
             tick_timer = 0.0;
+
+            // We only change direction on tick because changing direction twice between ticks lets you turn the snake into itself.
+            if let Some(new_dir) = input_queue.pop_front() {
+                snake.change_direction(new_dir);
+            }
+
+            // Advance the snake, and die if it collided with anything.
             if snake.advance_and_collide() {
                 info!("You died!");
                 return;
@@ -87,8 +109,7 @@ async fn main() {
         let gridx = (scrw - grid_width) / 2.0;
         let gridy = (scrh - grid_height) / 2.0;
 
-        // grid border
-        draw_rectangle_lines(gridx, gridy, grid_width, grid_height, 02.0, BLACK);
+        // Draw the grid.
         draw_rectangle(gridx, gridy, grid_width, grid_height, GRID_BACKGROUND);
 
         let draw_block = |block: &XY, colour| {
@@ -99,7 +120,7 @@ async fn main() {
 
         draw_block(&apple_pos, APPLE_COLOUR);
 
-        // draw snake
+        // Draw snake.
         let mut blocks = snake.blocks().iter();
         draw_block(blocks.next().unwrap(), SNAKE_HEAD_COLOUR); // the head is drawn in a different colour to the body.
         for block in blocks {
