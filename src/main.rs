@@ -40,35 +40,28 @@ async fn main() {
     let mut input_queue = VecDeque::new();
 
     loop {
-        // Add a new direction to the input queue if a direction key was pressed.
-        if let Some(direction) = get_char_pressed().and_then(|ch| {
-            let new_dir = match ch.to_ascii_lowercase() {
-                'w' | 'k' => Direction::Up,
-                'a' | 'h' => Direction::Left,
-                's' | 'j' => Direction::Down,
-                'd' | 'l' => Direction::Right,
-                // Otherwise ignore it.
-                _ => return None,
-            };
-
-            // We avoid stacking repeated inputs.
-            // This is because holding down a key for longer than usual would fill up the input queue and
-            // other keypresses would be ignored until the repeated inputs are consumed.
-            if new_dir != snake.direction() {
-                Some(new_dir)
-            } else {
-                None
-            }
-        }) {
-            input_queue.push_back(direction)
-        }
+        get_last_key_pressed()
+            .and_then(|input| {
+                use KeyCode::*;
+                Some(match input {
+                    W | K | Up => Direction::Up,
+                    A | H | Left => Direction::Left,
+                    S | J | Down => Direction::Down,
+                    D | L | Right => Direction::Right,
+                    _ => return None,
+                })
+                // We avoid stacking repeated inputs because holding down a key for longer than usual would fill up
+                // the input queue and other keypresses would be ignored until the repeated inputs are consumed.
+                .filter(|&dir| dir != snake.direction())
+            })
+            .map(|new_dir| input_queue.push_back(new_dir));
 
         tick_timer += get_frame_time();
         // Advance the game if a tick has passed.
         if tick_timer > TICK_TIME {
             tick_timer = 0.0;
 
-            // We only change direction on tick because changing direction twice between ticks lets you turn the snake into itself.
+            // We only change direction on tick because changing direction twice between ticks could turn the snake into itself.
             if let Some(new_dir) = input_queue.pop_front() {
                 snake.change_direction(new_dir);
             }
