@@ -1,7 +1,6 @@
-use ::rand::{thread_rng, Rng};
-use macroquad::{audio, prelude::*};
+use macroquad::{audio, prelude::*, rand::ChooseRandom};
 use snake::{XY, *};
-use std::collections::VecDeque;
+use std::{collections::VecDeque, process::exit};
 
 /// Time to wait between each tick, in seconds.
 /// Lower = faster.
@@ -29,14 +28,14 @@ async fn main() {
 
     let mut score: u16 = 0;
     const START_POS: XY = XY {
-        x: GRID_SIZE.x / 2 - 3,
-        y: GRID_SIZE.y / 2 - 1,
+        x: GRID_SIZE.x / 2,
+        y: GRID_SIZE.y / 2,
     };
     let mut snake = Snake::new(START_POS);
 
     // The apples position.
     let mut apple_pos = XY {
-        x: START_POS.x + 6,
+        x: START_POS.x.saturating_add(3),
         ..START_POS
     };
 
@@ -55,7 +54,7 @@ async fn main() {
                 })
                 // We avoid stacking repeated inputs because holding down a key for longer than usual would fill up
                 // the input queue and other keypresses would be ignored until the repeated inputs are consumed.
-                .filter(|&dir| dir != snake.direction())
+                .filter(|dir| input_queue.back() != Some(dir))
             })
             .map(|new_dir| input_queue.push_back(new_dir));
 
@@ -81,12 +80,17 @@ async fn main() {
                 // FIXME: audio isn't working for me??
                 audio::play_sound_once(eat_apple_sound);
 
-                // move the apple
-                let mut rng = thread_rng();
-                apple_pos = XY {
-                    x: rng.gen_range(0..GRID_SIZE.x),
-                    y: rng.gen_range(0..GRID_SIZE.y),
-                };
+                // Calculate grid positions not occupied by the snake.
+                let empty_positions: Vec<XY> = (0..GRID_SIZE.x)
+                    .map(|x| (0..GRID_SIZE.y).map(move |y| XY { x, y }))
+                    .flatten()
+                    .filter(|pos| snake.blocks().iter().all(|snake| snake != pos))
+                    .collect();
+
+                apple_pos = *empty_positions.choose().unwrap_or_else(|| {
+                    info!("You win!");
+                    exit(0);
+                });
             }
         }
 
@@ -113,6 +117,15 @@ async fn main() {
             draw_rectangle(x, y, block_size, block_size, colour);
         };
 
+        // Draw chequered grid
+        // for (pos, colour) in (0..GRID_SIZE.x)
+        //     .map(move |x| (0..GRID_SIZE.y).map(move |y| XY { x, y }))
+        //     .flatten()
+        //     .zip([GREEN, LIME].into_iter().cycle())
+        // {
+        //     draw_block(&pos, colour);
+        // }
+
         draw_block(&apple_pos, APPLE_COLOUR);
 
         draw_block(snake.head(), SNAKE_HEAD_COLOUR); // The head is drawn in a different colour to the body.
@@ -122,13 +135,13 @@ async fn main() {
             draw_block(block, SNAKE_COLOUR)
         }
 
-        // Print centered score in faded white.
+        // Draw centered score in faded white.
         draw_text(
             &score.to_string(),
             scrw / 2.0,
             60.0,
             60.0,
-            Color::new(1.0, 1.0, 1.0, 0.5),
+            Color::new(1.0, 1.0, 1.0, 0.9),
         );
 
         next_frame().await

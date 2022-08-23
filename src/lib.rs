@@ -58,7 +58,13 @@ impl Snake {
         collided_wall || {
             // If we won't hit a wall then check for self-collisions.
             let future_head = hd.shift(self.direction);
-            self.blocks.iter().any(|&block| block == future_head)
+            let mut blocks = self.blocks.iter();
+            if self.blocks.len() == self.length {
+                // We don't check for collisions with the tail block since it will move when advanced
+                // *unless* we just ate an apple, hence the conditional.
+                blocks.next_back().unwrap();
+            }
+            blocks.any(|&block| block == future_head)
         }
     }
 
