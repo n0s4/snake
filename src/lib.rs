@@ -7,7 +7,9 @@ pub use xy::{Direction, XY};
 pub struct Snake {
     /// The main data of the snake. [`Snake`] is essentially just a queue of the position of each block.
     blocks: VecDeque<XY>,
-    length: usize,
+    /// Flag switched `true` by the [`grow`] method and consumed by the [`advance`] method.
+    /// Advance will advance the head but leave the tail in place if this is `true`, and switch it `false` again.
+    growing: bool,
     direction: Direction,
 }
 
@@ -17,7 +19,7 @@ impl Snake {
         let tail = head_pos.shift(Direction::Left);
         Self {
             blocks: VecDeque::from([head_pos, tail]),
-            length: 2,
+            growing: false,
             direction: Direction::Right,
         }
     }
@@ -36,9 +38,10 @@ impl Snake {
         let new_head = self.head().shift(self.direction);
         self.blocks.push_front(new_head);
 
-        // We only remove the tail if adding the new head exceeds the length, if we collect an apple
-        // then the `length` increments and we don't remove the old head, effectively growing the snake.
-        if self.blocks.len() > self.length {
+        // We don't remove the tail if we are growing. This means the head will move forward and the tail stays in place.
+        if self.growing {
+            self.growing = false;
+        } else {
             self.blocks.pop_back();
         }
     }
@@ -59,9 +62,9 @@ impl Snake {
             // If we won't hit a wall then check for self-collisions.
             let future_head = hd.shift(self.direction);
             let mut blocks = self.blocks.iter();
-            if self.blocks.len() == self.length {
+            if !self.growing {
                 // We don't check for collisions with the tail block since it will move when advanced
-                // *unless* we just ate an apple, hence the conditional.
+                // *unless* we are going to grow (which means the tail block won't move), hence the conditional.
                 blocks.next_back().unwrap();
             }
             blocks.any(|&block| block == future_head)
@@ -79,7 +82,7 @@ impl Snake {
 
     /// Increment the length of the [`Snake`].
     pub fn grow(&mut self) {
-        self.length += 1;
+        self.growing = true;
     }
 
     /// The position of the head of this [`Snake`].

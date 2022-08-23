@@ -4,10 +4,10 @@ use std::{collections::VecDeque, process::exit};
 
 /// Time to wait between each tick, in seconds.
 /// Lower = faster.
-const TICK_TIME: f32 = 0.1;
+const TICK_TIME: f32 = 0.2;
 
 /// Game grid size, measured in "squares".
-pub const GRID_SIZE: XY = XY { x: 40, y: 30 };
+pub const GRID_SIZE: XY = XY { x: 10, y: 10 };
 
 // Colours.
 const SNAKE_COLOUR: Color = BLUE;
@@ -18,6 +18,12 @@ const APPLE_COLOUR: Color = RED;
 
 #[macroquad::main("Snake")]
 async fn main() {
+    rand::srand(
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs(),
+    );
     set_pc_assets_folder("assets");
     let eat_apple_sound = audio::load_sound("eat_apple.wav")
         .await
@@ -35,7 +41,7 @@ async fn main() {
 
     // The apples position.
     let mut apple_pos = XY {
-        x: START_POS.x.saturating_add(3),
+        x: START_POS.x.saturating_add(3).min(GRID_SIZE.x - 1),
         ..START_POS
     };
 

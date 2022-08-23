@@ -1,4 +1,4 @@
-#[derive(PartialEq, Eq, Clone, Copy)]
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
 /// Used for coordinates and grid size. (0, 0) is top left.
 pub struct XY {
     pub x: u8,
