@@ -1,16 +1,17 @@
 use macroquad::prelude::*;
 use std::collections::VecDeque;
 
-pub mod xy;
-pub use xy::{Direction, XY};
+use crate::xy::{XY, *};
 
 pub struct Snake {
     /// The main data of the snake. [`Snake`] is essentially just a queue of the position of each block.
     blocks: VecDeque<XY>,
-    /// Flag switched `true` by the [`grow`] method and consumed by the [`advance`] method.
-    /// Advance will advance the head but leave the tail in place if this is `true`, and switch it `false` again.
-    growing: bool,
+    /// Movement direction of the snake's head.
     direction: Direction,
+    /// Whether the snake will grow when it next [`advance`](Self::advance)s.
+    /// Switched `true` by [`grow`](Self::grow)ing and "consumed" by [`advance`](Self::advance).
+    /// [`advance`](Self::advance) advances the head but leaves the tail in place if this is `true`, switching it `false` again.
+    growing: bool,
 }
 
 impl Snake {
@@ -24,7 +25,7 @@ impl Snake {
         }
     }
 
-    /// If the [`Snake`] will collide with itself or the walls of `grid` when [`advance`]d, returns `true`,
+    /// If the [`Snake`] will collide with itself or the walls of `grid` when [`advance`](Self::advance)d, returns `true`,
     /// otherwise advances the [`Snake`], returning `false`.
     pub fn advance_or_collide_in(&mut self, grid: XY) -> bool {
         self.will_collide_in(grid) || {
@@ -46,7 +47,7 @@ impl Snake {
         }
     }
 
-    /// Whether the [`Snake`] *will* collide with the walls of `grid` or itself the next time it is [`advance`]d.
+    /// Whether the [`Snake`] *will* collide with the walls of `grid` or itself the next time it is [`advance`](Self::advance)d.
     fn will_collide_in(&self, grid: XY) -> bool {
         let hd = self.head();
 
@@ -67,7 +68,7 @@ impl Snake {
                 // *unless* we are going to grow (which means the tail block won't move), hence the conditional.
                 blocks.next_back().unwrap();
             }
-            blocks.any(|&block| block == future_head)
+            blocks.any(|&block| future_head == block)
         }
     }
 
@@ -80,22 +81,15 @@ impl Snake {
         self.direction = new_direction;
     }
 
-    /// Increment the length of the [`Snake`].
+    /// Grow the snake. Calling repeatedly between `advance` calls is the same as calling it once.
     pub fn grow(&mut self) {
         self.growing = true;
     }
 
-    /// The position of the head of this [`Snake`].
     pub fn head(&self) -> &XY {
         self.blocks.front().unwrap()
     }
 
-    /// The direction of this [`Snake`].
-    pub fn direction(&self) -> Direction {
-        self.direction
-    }
-
-    /// A reference to the blocks of this [`Snake`].
     pub fn blocks(&self) -> &VecDeque<XY> {
         &self.blocks
     }

@@ -33,7 +33,7 @@ pub enum Direction {
 }
 
 impl Direction {
-    pub(crate) fn is_inverse_of(self, other: Self) -> bool {
+    pub fn is_inverse_of(self, other: Self) -> bool {
         use Direction::*;
         other
             == match self {

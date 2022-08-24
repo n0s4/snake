@@ -1,19 +1,21 @@
 use macroquad::{audio, prelude::*, rand::ChooseRandom};
-use snake::{XY, *};
+mod snake;
+use snake::*;
+mod xy;
 use std::{collections::VecDeque, process::exit};
+use xy::{Direction, XY};
 
 /// Time to wait between each tick, in seconds.
 /// Lower = faster.
 const TICK_TIME: f32 = 0.2;
 
-/// Game grid size, measured in "squares".
-pub const GRID_SIZE: XY = XY { x: 10, y: 10 };
+const GRID_SIZE: XY = XY { x: 10, y: 10 };
 
 // Colours.
 const SNAKE_COLOUR: Color = BLUE;
 const SNAKE_HEAD_COLOUR: Color = DARKBLUE;
 const BACKGROUND: Color = DARKGREEN;
-const GRID_BACKGROUND: Color = GREEN;
+const GRID_COLOUR: Color = GREEN;
 const APPLE_COLOUR: Color = RED;
 
 #[macroquad::main("Snake")]
@@ -29,7 +31,7 @@ async fn main() {
         .await
         .expect("find sound assets/eat_apple.wav");
 
-    // Keeps track of how much time is left till the next tick (when the snake moves).
+    // How much time til the next tick.
     let mut tick_timer: f32 = 0.0;
 
     let mut score: u16 = 0;
@@ -39,7 +41,6 @@ async fn main() {
     };
     let mut snake = Snake::new(START_POS);
 
-    // The apples position.
     let mut apple_pos = XY {
         x: START_POS.x.saturating_add(3).min(GRID_SIZE.x - 1),
         ..START_POS
@@ -65,7 +66,6 @@ async fn main() {
             .map(|new_dir| input_queue.push_back(new_dir));
 
         tick_timer += get_frame_time();
-        // Advance the game if a tick has passed.
         if tick_timer > TICK_TIME {
             tick_timer = 0.0;
 
@@ -74,7 +74,6 @@ async fn main() {
                 snake.change_direction(new_dir);
             }
 
-            // Advance the snake, or die if it collided with anything.
             if snake.advance_or_collide_in(GRID_SIZE) {
                 info!("You died!");
                 return;
@@ -100,7 +99,8 @@ async fn main() {
             }
         }
 
-        // Rendering:
+        // Rendering
+
         clear_background(BACKGROUND);
 
         let (scrw, scrh) = (screen_width(), screen_height());
@@ -115,7 +115,7 @@ async fn main() {
         let gridx = (scrw - grid_width) / 2.0;
         let gridy = (scrh - grid_height) / 2.0;
 
-        draw_rectangle(gridx, gridy, grid_width, grid_height, GRID_BACKGROUND);
+        draw_rectangle(gridx, gridy, grid_width, grid_height, GRID_COLOUR);
 
         let draw_block = |block: &XY, colour| {
             let x = gridx + block.x as f32 * block_size;
@@ -123,7 +123,7 @@ async fn main() {
             draw_rectangle(x, y, block_size, block_size, colour);
         };
 
-        // Draw chequered grid
+        // // Draw chequered grid
         // for (pos, colour) in (0..GRID_SIZE.x)
         //     .map(move |x| (0..GRID_SIZE.y).map(move |y| XY { x, y }))
         //     .flatten()
@@ -141,7 +141,6 @@ async fn main() {
             draw_block(block, SNAKE_COLOUR)
         }
 
-        // Draw centered score in faded white.
         draw_text(
             &score.to_string(),
             scrw / 2.0,
