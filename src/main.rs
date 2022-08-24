@@ -7,7 +7,7 @@ use xy::{Direction, XY};
 
 /// Time to wait between each tick, in seconds.
 /// Lower = faster.
-const TICK_TIME: f32 = 0.2;
+const TICK_TIME: f32 = 0.3;
 
 const GRID_SIZE: XY = XY { x: 10, y: 10 };
 
@@ -27,43 +27,58 @@ async fn main() {
             .as_secs(),
     );
     set_pc_assets_folder("assets");
+
     let eat_apple_sound = audio::load_sound("eat_apple.wav")
         .await
         .expect("find sound assets/eat_apple.wav");
 
+    loop {
+        let score = play(eat_apple_sound).await;
+        death_screen(score).await;
+    }
+}
+
+async fn play(eat_apple_sound: audio::Sound) -> u16 {
     // How much time til the next tick.
     let mut tick_timer: f32 = 0.0;
 
     let mut score: u16 = 0;
-    const START_POS: XY = XY {
-        x: GRID_SIZE.x / 2,
+    const MIDDLE: XY = XY {
+        x: (GRID_SIZE.x / 2),
         y: GRID_SIZE.y / 2,
     };
-    let mut snake = Snake::new(START_POS);
+    let mut snake = Snake::new(XY {
+        x: MIDDLE.x.saturating_sub(2).min(GRID_SIZE.x - 1),
+        ..MIDDLE
+    });
 
     let mut apple_pos = XY {
-        x: START_POS.x.saturating_add(3).min(GRID_SIZE.x - 1),
-        ..START_POS
+        x: MIDDLE.x.saturating_add(2).min(GRID_SIZE.x - 1),
+        ..MIDDLE
     };
 
     let mut input_queue = VecDeque::new();
 
     loop {
-        get_last_key_pressed()
-            .and_then(|input| {
-                use KeyCode::*;
-                Some(match input {
-                    W | K | Up => Direction::Up,
-                    A | H | Left => Direction::Left,
-                    S | J | Down => Direction::Down,
-                    D | L | Right => Direction::Right,
-                    _ => return None,
-                })
-                // We avoid stacking repeated inputs because holding down a key for longer than usual would fill up
-                // the input queue and other keypresses would be ignored until the repeated inputs are consumed.
-                .filter(|dir| input_queue.back() != Some(dir))
+        let input = get_last_key_pressed().and_then(|input| {
+            use KeyCode::*;
+            Some(match input {
+                W | Up => Direction::Up,
+                A | Left => Direction::Left,
+                S | Down => Direction::Down,
+                D | Right => Direction::Right,
+                _ => return None,
             })
-            .map(|new_dir| input_queue.push_back(new_dir));
+            // We avoid stacking repeated inputs because holding down a key for longer than usual would fill up
+            // the input queue and other keypresses would be ignored until the repeated inputs are consumed.
+            .filter(|dir| input_queue.back() != Some(dir))
+        });
+
+        if let Some(new_dir) = input {
+            if input_queue.len() <= 1 {
+                input_queue.push_back(new_dir);
+            }
+        }
 
         tick_timer += get_frame_time();
         if tick_timer > TICK_TIME {
@@ -75,8 +90,7 @@ async fn main() {
             }
 
             if snake.advance_or_collide_in(GRID_SIZE) {
-                info!("You died!");
-                return;
+                return score;
             };
 
             if *snake.head() == apple_pos {
@@ -98,7 +112,6 @@ async fn main() {
                 });
             }
         }
-
         // Rendering
 
         clear_background(BACKGROUND);
@@ -146,8 +159,36 @@ async fn main() {
             scrw / 2.0,
             60.0,
             60.0,
-            Color::new(1.0, 1.0, 1.0, 0.9),
+            Color::new(1.0, 1.0, 1.0, 0.5),
         );
+
+        next_frame().await;
+    }
+}
+
+async fn death_screen(score: u16) {
+    loop {
+        clear_background(BACKGROUND);
+
+        let (scrw, scrh) = (screen_width(), screen_height());
+
+        let (midx, midy) = (scrw / 2.0, scrh / 2.0);
+
+        draw_text("Game over!", midx - 100.0, midy - 50.0, 50.0, WHITE);
+
+        draw_text(&format!("Score: {score}"), midx - 50.0, midy, 40.0, WHITE);
+
+        draw_text(
+            "Press space to play again",
+            midx - 160.0,
+            midy + 50.0,
+            30.0,
+            WHITE,
+        );
+
+        if get_last_key_pressed() == Some(KeyCode::Space) {
+            return;
+        }
 
         next_frame().await
     }
