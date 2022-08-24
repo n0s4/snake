@@ -57,26 +57,35 @@ async fn play(eat_apple_sound: audio::Sound) -> u16 {
         ..MIDDLE
     };
 
-    let mut new_input = None;
+    let mut input_queue = VecDeque::new();
 
     loop {
-        new_input = new_input.or(get_last_key_pressed());
+        let input = get_last_key_pressed().and_then(|input| {
+            use KeyCode::*;
+            Some(match input {
+                W | Up => Direction::Up,
+                A | Left => Direction::Left,
+                S | Down => Direction::Down,
+                D | Right => Direction::Right,
+                _ => return None,
+            })
+            // We avoid stacking repeated inputs because holding down a key for longer than usual would fill up
+            // the input queue and other keypresses would be ignored until the repeated inputs are consumed.
+            .filter(|dir| input_queue.back() != Some(dir))
+        });
+
+        if let Some(new_dir) = input {
+            if input_queue.len() <= 1 {
+                input_queue.push_back(new_dir);
+            }
+        }
 
         tick_timer += get_frame_time();
         if tick_timer > TICK_TIME {
             tick_timer = 0.0;
 
             // We only change direction on tick because changing direction twice between ticks could turn the snake into itself.
-            if let Some(new_dir) = new_input.and_then(|input| {
-                use KeyCode::*;
-                Some(match input {
-                    W | Up => Direction::Up,
-                    A | Left => Direction::Left,
-                    S | Down => Direction::Down,
-                    D | Right => Direction::Right,
-                    _ => return None,
-                })
-            }) {
+            if let Some(new_dir) = input_queue.pop_front() {
                 snake.change_direction(new_dir);
             }
 
