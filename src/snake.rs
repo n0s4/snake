@@ -15,11 +15,12 @@ pub struct Snake {
 }
 
 impl Snake {
-    /// A new instance of [`Snake`] with just two blocks, with the head's position at `head_pos`.
-    pub fn new(head_pos: XY) -> Self {
-        let tail = head_pos.shift(Direction::Left);
+    /// A new instance of [`Snake`] with just three blocks and he head's position at `head`.
+    pub fn new(head: XY) -> Self {
+        let middle = head.shift(Direction::Left);
+        let tail = middle.shift(Direction::Left);
         Self {
-            blocks: VecDeque::from([head_pos, tail]),
+            blocks: VecDeque::from([head, middle, tail]),
             growing: false,
             direction: Direction::Right,
         }
@@ -92,5 +93,9 @@ impl Snake {
 
     pub fn blocks(&self) -> &VecDeque<XY> {
         &self.blocks
+    }
+
+    pub fn len(&self) -> usize {
+        self.blocks.len()
     }
 }
